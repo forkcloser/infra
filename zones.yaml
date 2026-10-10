@@ -1,0 +1,15 @@
+# Every domain the organisation owns, and every record set its zone
+# carries. This file is the whole zone: a record set in DNS and not here
+# is deleted on apply. The apex is the empty subname; the apex NS set is
+# deSEC's own and is never written. CNAME targets are absolute, with the
+# trailing dot. Applied by `just apply` through dnsctl.
+zones:
+  - name: forkcloser.org
+    registrar: gandi
+    records:
+      # The site's pages.dev hostname is the Pages project name by
+      # construction, so nothing here waits on the Cloudflare apply.
+      - subname: godolint
+        type: CNAME
+        ttl: 3600
+        records: ["website-godolint.pages.dev."]
