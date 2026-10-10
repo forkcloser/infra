@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -47,6 +48,9 @@ type rootCommand struct {
 
 	Plan  planCommand  `cmd:"" help:"Show what apply would change. Exit 2 when something would."`
 	Apply applyCommand `cmd:"" help:"Make deSEC and the registrar match the zones file."`
+
+	// Where the plan is written; unexported, so kong leaves it alone.
+	out io.Writer
 }
 
 type planCommand struct {
@@ -98,7 +102,7 @@ func (root *rootCommand) plan(ctx context.Context, path string) (*reconcile.Reco
 		return nil, nil, fmt.Errorf("planning: %w", err)
 	}
 
-	plan.Write(os.Stdout)
+	plan.Write(root.out)
 
 	return rec, plan, nil
 }
@@ -133,26 +137,50 @@ func (cmd *applyCommand) Run(ctx context.Context, root *rootCommand) error {
 	return nil
 }
 
-func main() {
-	ctx := app.New(context.Background(), &app.Options{Name: "dnsctl"})
+// run parses args and runs the command, writing the plan to stdout and
+// usage to stderr, and returns the exit status. The context is bound to
+// the interface type the Run methods take; kong binds by concrete type
+// otherwise, and the one app.New returns is not context.Context.
+func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+	root := rootCommand{out: stdout}
 
-	var root rootCommand
-
-	parser := kong.Parse(&root,
+	parser, err := kong.New(&root,
 		kong.Name("dnsctl"),
 		kong.Description("Make deSEC and the registrar match the zones file."),
 		kong.UsageOnError(),
+		kong.Writers(stdout, stderr),
+		kong.Exit(func(int) {}),
+		kong.BindTo(ctx, (*context.Context)(nil)),
 	)
+	if err != nil {
+		fmt.Fprintln(stderr, "dnsctl:", err)
 
-	err := parser.Run(ctx, &root)
+		return exitError
+	}
+
+	kctx, err := parser.Parse(args)
+	if err != nil {
+		parser.Errorf("%s", err)
+
+		return exitError
+	}
+
+	err = kctx.Run(&root)
 
 	switch {
 	case err == nil:
-		os.Exit(exitOK)
+		return exitOK
 	case errors.Is(err, errChanges):
-		os.Exit(exitChanges)
+		return exitChanges
 	default:
-		fmt.Fprintln(os.Stderr, "dnsctl:", err)
-		os.Exit(exitError)
+		fmt.Fprintln(stderr, "dnsctl:", err)
+
+		return exitError
 	}
+}
+
+func main() {
+	ctx := app.New(context.Background(), &app.Options{Name: "dnsctl"})
+
+	os.Exit(run(ctx, os.Args[1:], os.Stdout, os.Stderr))
 }
