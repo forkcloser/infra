@@ -41,6 +41,37 @@ jobs:
       - name: Install aqua (pinned, checksum-verified)
         uses: ./.github/actions/setup-aqua
 
+      # aqua's package store, keyed on the exact pins; same shape as
+      # limen-verify, so a warm store makes every first use below a link.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.AQUA_ROOT_DIR }}/pkgs
+          key: aqua-pkgs-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.aqua/aqua.yaml', '.aqua/aqua-checksums.json', '.limen/aqua-registry.yaml') }}
+          restore-keys: |
+            aqua-pkgs-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install pinned tools
+        # Link-only: just, tofu and go download lazily on first use,
+        # checksum-verified. Without this step the bin directory holds aqua
+        # alone and `just` is not found.
+        run: aqua install --only-link
+
+      # The Go build and module caches: dnsctl is compiled from source on
+      # every run, and this keeps that to the changed packages.
+      - id: gocache
+        run: |
+          echo "build=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
+          echo "mod=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"
+          echo "version=$(go env GOVERSION)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ steps.gocache.outputs.build }}
+            ${{ steps.gocache.outputs.mod }}
+          key: go-${{ runner.os }}-${{ runner.arch }}-${{ steps.gocache.outputs.version }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            go-${{ runner.os }}-${{ runner.arch }}-${{ steps.gocache.outputs.version }}-
+
       - name: Plan
         shell: bash
         run: just plan
