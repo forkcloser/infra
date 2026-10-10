@@ -23,14 +23,16 @@ init:
         -backend-config="endpoints={s3=\"https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com\"}"
 
 # What an apply would change: the Cloudflare plan written to a file, then
-# the DNS and registrar diff. dnsctl exits 2 when it would change something,
-# so the recipe does too, the way tofu's -detailed-exitcode would.
+# the DNS and registrar diff. A plan with changes in it is the recipe doing
+# its job, not a failure, so the 2 dnsctl exits with when something would
+# change is accepted here, as tofu plan exits 0 without -detailed-exitcode;
+# run build/dnsctl plan directly to gate on it.
 plan: init dnsctl
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p build
     tofu plan -input=false -out=build/tofu.plan
-    build/dnsctl plan zones.yaml
+    build/dnsctl plan zones.yaml || [ $? -eq 2 ]
 
 # Apply takes only the saved Cloudflare plan, never a fresh one, so what
 # was reviewed is what runs; then DNS and the registrar follow the file.

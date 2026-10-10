@@ -56,8 +56,9 @@ set to refuse either unencrypted. Locking is the bucket's own conditional write.
 
 `dnsctl` keeps no state: the file and the two services are compared on every run. Two deSEC
 tokens keep creation apart from routine writes: the creation token is used for one call,
-creating a zone, and nothing else ever carries that right. `plan`
-exits 2 when something would change, 0 when nothing would. Apply runs in the order the
+creating a zone, and nothing else ever carries that right. `dnsctl plan`
+exits 2 when something would change, 0 when nothing would; the `plan` recipe accepts both,
+since a plan with changes in it is the point of running one on a pull request. Apply runs in the order the
 DNSSEC chain needs: the zone, its record sets, the delegation, and only then the key at the
 registrar, so a resolver never sees a signed delegation to a zone still served unsigned. A
 zone created in a run has its key published in the same run; deSEC returns the keys on
