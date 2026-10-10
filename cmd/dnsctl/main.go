@@ -63,21 +63,37 @@ type applyCommand struct {
 
 var errChanges = errors.New("changes pending")
 
-func (root *rootCommand) reconciler() (*reconcile.Reconciler, error) {
-	httpClient := transporter.NewClient(transporter.Options{
+// transportOptions is one client's rate limit and retry policy; each
+// service gets a client of its own so its TLS can differ.
+func transportOptions(legacyTLS bool) transporter.Options {
+	return transporter.Options{
 		MaxPerSecond:   requestsPerSecond,
 		MaxRetries:     maxRetries,
 		InitialBackoff: initialBackoff,
 		MaxBackoff:     maxBackoff,
 		UserAgent:      "dnsctl",
-	})
+		LegacyTLS:      legacyTLS,
+	}
+}
 
-	desecClient, err := desec.New(httpClient, root.DesecBaseURL, root.DesecToken, root.DesecCreateToken)
+func (root *rootCommand) reconciler() (*reconcile.Reconciler, error) {
+	// deSEC speaks TLS 1.3 and takes the process default: 1.3, hybrid
+	// post-quantum key exchange only.
+	desecClient, err := desec.New(
+		transporter.NewClient(transportOptions(false)),
+		root.DesecBaseURL, root.DesecToken, root.DesecCreateToken,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("deSEC client: %w", err)
 	}
 
-	gandiClient, err := gandi.New(httpClient, root.GandiBaseURL, root.GandiToken)
+	// api.gandi.net refuses a TLS 1.3 handshake ("protocol version not
+	// supported", the server's alert, on every attempt) and answers at
+	// 1.2, so this one client gets Go's default TLS. Nothing else does.
+	gandiClient, err := gandi.New(
+		transporter.NewClient(transportOptions(true)),
+		root.GandiBaseURL, root.GandiToken,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("Gandi client: %w", err)
 	}
