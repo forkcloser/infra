@@ -1,6 +1,16 @@
-terraform {
-  required_version = "1.13.1"
+# The OpenTofu this configuration is written for, stated the OpenTofu way:
+# a top-level language block, which OpenTofu 1.13 enforces ("Incompatible
+# module" on a mismatch). The binary itself is the aqua pin in .aqua/aqua.yaml,
+# the same version. `terraform { required_version }` is not used: OpenTofu
+# keeps it only as a Terraform compatibility statement and does not hold
+# itself to it, and Renovate reads it as a Terraform version to bump.
+language {
+  compatible_with {
+    opentofu = "1.13.1"
+  }
+}
 
+terraform {
   required_providers {
     cloudflare = {
       source  = "cloudflare/cloudflare"

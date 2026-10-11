@@ -1,6 +1,11 @@
-terraform {
-  required_version = "1.13.1"
+# The OpenTofu this module is written for; see the root versions.tf.
+language {
+  compatible_with {
+    opentofu = "1.13.1"
+  }
+}
 
+terraform {
   required_providers {
     cloudflare = {
       source  = "cloudflare/cloudflare"
