@@ -14,6 +14,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/mycophonic/primordium/app"
+	"github.com/mycophonic/primordium/app/shutdown"
 	"github.com/mycophonic/primordium/network/transporter"
 
 	"github.com/forkcloser/infra/internal/desec"
@@ -198,5 +199,11 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 func main() {
 	ctx := app.New(context.Background(), &app.Options{Name: "dnsctl"})
 
-	os.Exit(run(ctx, os.Args[1:], os.Stdout, os.Stderr))
+	code := run(ctx, os.Args[1:], os.Stdout, os.Stderr)
+
+	// The handlers app.New registered (the reporter's flush, the stores)
+	// run on a signal or here, never on a plain return; shutdown.Run would
+	// run them too, but exits 0 or 1 and the changes status is 2.
+	shutdown.Shutdown()
+	os.Exit(code)
 }
