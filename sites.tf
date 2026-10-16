@@ -10,3 +10,13 @@ module "godolint" {
   zone       = "forkcloser.org"
   subname    = "godolint"
 }
+
+module "taciturn" {
+  source = "./modules/static-site"
+
+  account_id = var.cloudflare_account_id
+  name       = "website-taciturn"
+  repository = "website-taciturn"
+  zone       = "forkcloser.org"
+  subname    = "taciturn"
+}

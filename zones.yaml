@@ -13,3 +13,7 @@ zones:
         type: CNAME
         ttl: 3600
         records: ["website-godolint.pages.dev."]
+      - subname: taciturn
+        type: CNAME
+        ttl: 3600
+        records: ["website-taciturn.pages.dev."]
