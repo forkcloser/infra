@@ -157,7 +157,7 @@ func (cmd *applyCommand) Run(ctx context.Context, root *rootCommand) error {
 // run parses args and runs the command, writing the plan to stdout and
 // usage to stderr, and returns the exit status. The context is bound to
 // the interface type the Run methods take; kong binds by concrete type
-// otherwise, and the one app.New returns is not context.Context.
+// otherwise, and the one app.Main hands out is not context.Context.
 func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	root := rootCommand{out: stdout}
 
@@ -197,13 +197,14 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 }
 
 func main() {
-	ctx := app.New(context.Background(), &app.Options{Name: "dnsctl"})
+	// Main runs the handlers it registered (the reporter's flush, the stores)
+	// however run ends, and exits with the status an ExitError asks for,
+	// silently: the changes status is 2, and every message is already printed.
+	app.Main(&app.Options{Name: "dnsctl"}, func(ctx context.Context) error {
+		if code := run(ctx, os.Args[1:], os.Stdout, os.Stderr); code != exitOK {
+			return shutdown.ExitError(code)
+		}
 
-	code := run(ctx, os.Args[1:], os.Stdout, os.Stderr)
-
-	// The handlers app.New registered (the reporter's flush, the stores)
-	// run on a signal or here, never on a plain return; shutdown.Run would
-	// run them too, but exits 0 or 1 and the changes status is 2.
-	shutdown.Shutdown()
-	os.Exit(code)
+		return nil
+	})
 }
