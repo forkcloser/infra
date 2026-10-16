@@ -22,7 +22,7 @@ tag, and the recipes below to limen, leaving this repository its declarations.
 | Path | What |
 |------|------|
 | `zones.yaml` | Every domain and every record set. The file is the whole zone: a record set in DNS and not here is deleted on apply. |
-| `cmd/dnsctl`, `internal/` | The DNS and registrar tool: `desec` and `gandi` are the two API clients, `zones` reads and validates the file, `reconcile` computes and applies the diff. |
+| `internal/cmd/dnsctl`, `internal/` | The DNS and registrar tool: `desec` and `gandi` are the two API clients, `zones` reads and validates the file, `reconcile` computes and applies the diff. |
 | `versions.tf` | The OpenTofu and provider pins, the S3 backend on R2, and state encryption. |
 | `backend.hcl` | The backend's bucket, key and R2 flags. The endpoint, which carries the account id, comes from the environment at `just init`. |
 | `sites.tf` | One `static-site` module block per site. |

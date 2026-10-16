@@ -47,7 +47,7 @@ apply: dnsctl
 
 dnsctl:
     mkdir -p build
-    go build -o build/dnsctl ./cmd/dnsctl
+    go build -o build/dnsctl ./internal/cmd/dnsctl
 
 # Validation needs the provider but not the backend or its credentials.
 validate:
