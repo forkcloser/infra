@@ -19,4 +19,7 @@ module "taciturn" {
   repository = "website-taciturn"
   zone       = "forkcloser.org"
   subname    = "taciturn"
+  # The first project was created before the Pages App could see the
+  # repository, and a connection is made at creation only.
+  connection = 2
 }
