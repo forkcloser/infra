@@ -50,3 +50,14 @@ variable "subname" {
   type        = string
   nullable    = false
 }
+
+variable "connection" {
+  description = "The generation of the project's GitHub connection. Cloudflare binds the repository to the project once, at creation, through the access the Pages App has at that moment; access granted afterwards never reaches a project that already exists, and its pushes build nothing. A higher number replaces the project and its domain, so the connection is made again."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.connection >= 1 && floor(var.connection) == var.connection
+    error_message = "The connection generation is a whole number from 1."
+  }
+}

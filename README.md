@@ -91,6 +91,12 @@ And one record set in `zones.yaml`, the CNAME to the project's pages.dev name, a
 
 The content repository needs nothing from this one: Cloudflare pulls it on every push,
 production from `main`, a preview per branch, serving its `site/` directory as committed.
+One thing comes first: the Cloudflare Pages App on the organisation must have access to
+the repository before the apply, because Cloudflare binds the repository to the project at
+creation and never again; a project created before the access existed builds nothing, on
+any push, and its hostname answers 522. The way back is to replace the project: bump the
+block's `connection` (1 by default) and the apply destroys the project and its domain and
+creates them again, with the connection made under the access that exists now.
 
 ## Adding a domain
 
