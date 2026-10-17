@@ -13,7 +13,7 @@ Desktop.ini
 .claude/
 
 # Build output and Go artifacts
-/build
+/.build
 
 # OpenTofu: provider binaries, state and plans never enter the tree; the
 # lock file (.terraform.lock.hcl) does, it is the provider pin.
@@ -65,6 +65,3 @@ Desktop.ini
 # Audit scratchpads: notes to be evaluated for possible issues, never a
 # deliverable — the findings that survive become code, tests, or the book.
 AUDIT.md
-
-# Required by limen (book/mandatory-files.md, ".gitignore").
-/.build

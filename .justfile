@@ -26,13 +26,13 @@ init:
 # the DNS and registrar diff. A plan with changes in it is the recipe doing
 # its job, not a failure, so the 2 dnsctl exits with when something would
 # change is accepted here, as tofu plan exits 0 without -detailed-exitcode;
-# run build/dnsctl plan directly to gate on it.
+# run .build/dnsctl plan directly to gate on it.
 plan: init dnsctl
     #!/usr/bin/env bash
     set -euo pipefail
-    mkdir -p build
-    tofu plan -input=false -out=build/tofu.plan
-    build/dnsctl plan zones.yaml || [ $? -eq 2 ]
+    mkdir -p .build
+    tofu plan -input=false -out=.build/tofu.plan
+    .build/dnsctl plan zones.yaml || [ $? -eq 2 ]
 
 # Apply takes only the saved Cloudflare plan, never a fresh one, so what
 # was reviewed is what runs; then DNS and the registrar follow the file.
@@ -41,13 +41,13 @@ plan: init dnsctl
 apply: dnsctl
     #!/usr/bin/env bash
     set -euo pipefail
-    test -f build/tofu.plan
-    tofu apply -input=false build/tofu.plan
-    build/dnsctl apply zones.yaml
+    test -f .build/tofu.plan
+    tofu apply -input=false .build/tofu.plan
+    .build/dnsctl apply zones.yaml
 
 dnsctl:
-    mkdir -p build
-    go build -o build/dnsctl ./cmd/dnsctl
+    mkdir -p .build
+    go build -o .build/dnsctl ./cmd/dnsctl
 
 # Validation needs the provider but not the backend or its credentials.
 validate:

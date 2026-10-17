@@ -34,8 +34,8 @@ tag, and the recipes below to limen, leaving this repository its declarations.
 ```bash
 just lint      # the shared limen baseline and its Go lanes, plus tofu fmt and validate
 just test      # the Go tests, and validate with the provider and without the backend
-just plan      # the Cloudflare plan to build/tofu.plan, then the DNS and registrar diff
-just apply     # apply build/tofu.plan, and only that; then DNS and the registrar
+just plan      # the Cloudflare plan to .build/tofu.plan, then the DNS and registrar diff
+just apply     # apply .build/tofu.plan, and only that; then DNS and the registrar
 just lock      # refresh provider hashes for every platform in the lock file
 ```
 
