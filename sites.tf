@@ -23,3 +23,16 @@ module "taciturn" {
   # repository, and a connection is made at creation only.
   connection = 2
 }
+
+# The organisation's own site, at www: the zone is served by deSEC, which has
+# no ALIAS record, and a CNAME cannot sit at the apex, so forkcloser.org
+# itself points nowhere until the zone moves or a redirect host exists.
+module "www" {
+  source = "./modules/static-site"
+
+  account_id = var.cloudflare_account_id
+  name       = "website-forkcloser"
+  repository = "website"
+  zone       = "forkcloser.org"
+  subname    = "www"
+}

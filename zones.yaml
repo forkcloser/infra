@@ -17,3 +17,7 @@ zones:
         type: CNAME
         ttl: 3600
         records: ["website-taciturn.pages.dev."]
+      - subname: www
+        type: CNAME
+        ttl: 3600
+        records: ["website-forkcloser.pages.dev."]
