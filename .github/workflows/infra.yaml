@@ -38,23 +38,17 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install aqua (pinned, checksum-verified)
-        uses: ./.github/actions/setup-aqua
+      - name: Install hermetic (pinned, verified)
+        uses: ./.github/actions/setup-hermetic
 
-      # aqua's package store, keyed on the exact pins; same shape as
+      # hermetic's package store, keyed on the exact pins; same shape as
       # limen-verify, so a warm store makes every first use below a link.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ${{ env.AQUA_ROOT_DIR }}/pkgs
-          key: aqua-pkgs-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.aqua/aqua.yaml', '.aqua/aqua-checksums.json', '.limen/aqua-registry.yaml') }}
+          path: ${{ env.HERMETIC_ROOT_DIR }}/store/pkgs
+          key: aqua-pkgs-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.hermetic/hermetic.yaml', '.hermetic/aqua-checksums.json', '.limen/hermetic-registry.yaml') }}
           restore-keys: |
             aqua-pkgs-${{ runner.os }}-${{ runner.arch }}-
-
-      - name: Install pinned tools
-        # Link-only: just, tofu and go download lazily on first use,
-        # checksum-verified. Without this step the bin directory holds aqua
-        # alone and `just` is not found.
-        run: aqua install --only-link
 
       # The Go build and module caches: dnsctl is compiled from source on
       # every run, and this keeps that to the changed packages.
