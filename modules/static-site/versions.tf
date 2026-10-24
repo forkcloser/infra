@@ -1,7 +1,7 @@
 # The OpenTofu this module is written for; see the root versions.tf.
 language {
   compatible_with {
-    opentofu = "1.13.1"
+    opentofu = "1.13.2"
   }
 }
 

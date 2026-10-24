@@ -6,7 +6,7 @@
 # itself to it, and Renovate reads it as a Terraform version to bump.
 language {
   compatible_with {
-    opentofu = "1.13.1"
+    opentofu = "1.13.2"
   }
 }
 
