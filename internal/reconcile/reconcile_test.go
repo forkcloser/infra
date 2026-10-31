@@ -312,10 +312,22 @@ func TestExistingZoneConvergesAndDropsUndeclaredSets(t *testing.T) {
 	}
 }
 
-func TestMissingZoneWithoutCreationTokenIsRefusedAtPlan(t *testing.T) {
+func TestMissingZoneWithoutCreationTokenPlansAndRefusesToApply(t *testing.T) {
 	t.Parallel()
 
+	// The existing zone comes first and has a record set to write: the
+	// refusal must come before it, not at the missing zone's turn.
 	f := newFake()
+	f.domains["example.org"] = desec.Domain{Name: "example.org", Keys: []desec.Key{
+		{DNSKey: "257 3 13 KEY1", Flags: 257, Managed: true},
+	}}
+	f.rrsets["example.org"] = []desec.RRset{
+		{Subname: "www", Type: "CNAME", TTL: 3600, Records: []string{"old.pages.dev."}},
+	}
+	f.nameservers["example.org"] = reconcile.Nameservers()
+	f.published["example.org"] = []gandi.Key{{ID: 5, Algorithm: 13, Type: "ksk", PublicKey: "KEY1"}}
+	f.nameservers["new.example"] = []string{"ns-1.gandi.net"}
+
 	ds := httptest.NewServer(http.HandlerFunc(f.desecHandler))
 	gs := httptest.NewServer(http.HandlerFunc(f.gandiHandler))
 
@@ -334,12 +346,31 @@ func TestMissingZoneWithoutCreationTokenIsRefusedAtPlan(t *testing.T) {
 
 	r := &reconcile.Reconciler{DeSEC: d, Gandi: g}
 
-	_, err = r.Plan(t.Context(), config())
+	cfg := config()
+	cfg.Zones = append(cfg.Zones, zones.Zone{
+		Name:      "new.example",
+		Registrar: zones.RegistrarGandi,
+		Records: []zones.RRset{
+			{Subname: "www", Type: "CNAME", TTL: 3600, Records: []string{"site.pages.dev."}},
+		},
+	})
+
+	plan, err := r.Plan(t.Context(), cfg)
+	if err != nil {
+		t.Fatalf("plan: %v", err)
+	}
+
+	if len(plan.Zones) != 2 || plan.Zones[0].CreateDomain || len(plan.Zones[0].RRsets) == 0 ||
+		!plan.Zones[1].CreateDomain {
+		t.Fatalf("plan = %+v, want a write to the first zone and the second's creation", plan.Zones)
+	}
+
+	err = r.Apply(t.Context(), plan)
 	if !errors.Is(err, fault.ErrMissingRequirements) {
-		t.Fatalf("err = %v, want ErrMissingRequirements", err)
+		t.Fatalf("apply err = %v, want ErrMissingRequirements", err)
 	}
 
 	if len(f.writes) != 0 {
-		t.Fatalf("plan must write nothing, wrote %v", f.writes)
+		t.Fatalf("nothing may be written, wrote %v", f.writes)
 	}
 }

@@ -41,11 +41,11 @@ const (
 )
 
 type rootCommand struct {
-	DesecToken       string `env:"DESEC_API_TOKEN"                      help:"deSEC token, restricted to the zones in the file."                                                     required:"true"`
-	DesecCreateToken string `env:"DESEC_CREATE_TOKEN"                   help:"deSEC token whose only right is to create domains; needed when a zone in the file does not exist yet."`
-	GandiToken       string `env:"GANDI_PERSONAL_ACCESS_TOKEN"          help:"Gandi personal access token with domain management."                                                   required:"true"`
-	DesecBaseURL     string `default:"https://desec.io/api/v1/"         help:"deSEC API base."                                                                                       hidden:""`
-	GandiBaseURL     string `default:"https://api.gandi.net/v5/domain/" help:"Gandi domain API base."                                                                                hidden:""`
+	DesecToken       string `env:"DESEC_API_TOKEN"                      help:"deSEC token, restricted to the zones in the file."                                                                                                   required:"true"`
+	DesecCreateToken string `env:"DESEC_CREATE_TOKEN"                   help:"deSEC token whose only right is to create domains; apply needs it when a zone in the file does not exist yet, plan reports the creation without it."`
+	GandiToken       string `env:"GANDI_PERSONAL_ACCESS_TOKEN"          help:"Gandi personal access token with domain management."                                                                                                 required:"true"`
+	DesecBaseURL     string `default:"https://desec.io/api/v1/"         help:"deSEC API base."                                                                                                                                     hidden:""`
+	GandiBaseURL     string `default:"https://api.gandi.net/v5/domain/" help:"Gandi domain API base."                                                                                                                              hidden:""`
 
 	Plan  planCommand  `cmd:"" help:"Show what apply would change. Exit 2 when something would."`
 	Apply applyCommand `cmd:"" help:"Make deSEC and the registrar match the zones file."`
