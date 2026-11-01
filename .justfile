@@ -6,7 +6,7 @@ import '.limen/just/main.just'
 # The FIRST recipe defined here becomes `just`'s default.
 lint: do::lint::default do::lint::go::default fmt-check validate
 fix: do::fix::default do::fix::go::default fmt
-test: do::test::go::default validate
+test: do::test::go::default validate check
 security: do::security::default do::security::go::default
 
 # Every recipe below runs the tofu this repository pins through aqua, on the
@@ -54,6 +54,10 @@ apply: dnsctl
 dnsctl:
     mkdir -p build
     go build -o build/dnsctl ./cmd/dnsctl
+
+# The zones file, loaded and validated by dnsctl; no token, no network.
+check: dnsctl
+    build/dnsctl check zones.yaml
 
 # Validation needs the provider but not the backend or its credentials.
 validate:

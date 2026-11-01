@@ -15,6 +15,7 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/mycophonic/primordium/app"
 	"github.com/mycophonic/primordium/app/shutdown"
+	"github.com/mycophonic/primordium/fault"
 	"github.com/mycophonic/primordium/network/transporter"
 
 	"github.com/forkcloser/infra/internal/desec"
@@ -41,17 +42,22 @@ const (
 )
 
 type rootCommand struct {
-	DesecToken       string `env:"DESEC_API_TOKEN"                      help:"deSEC token, restricted to the zones in the file."                                                                                                   required:"true"`
+	DesecToken       string `env:"DESEC_API_TOKEN"                      help:"deSEC token, restricted to the zones in the file."`
 	DesecCreateToken string `env:"DESEC_CREATE_TOKEN"                   help:"deSEC token whose only right is to create domains; apply needs it when a zone in the file does not exist yet, plan reports the creation without it."`
-	GandiToken       string `env:"GANDI_PERSONAL_ACCESS_TOKEN"          help:"Gandi personal access token with domain management."                                                                                                 required:"true"`
+	GandiToken       string `env:"GANDI_PERSONAL_ACCESS_TOKEN"          help:"Gandi personal access token with domain management."`
 	DesecBaseURL     string `default:"https://desec.io/api/v1/"         help:"deSEC API base."                                                                                                                                     hidden:""`
 	GandiBaseURL     string `default:"https://api.gandi.net/v5/domain/" help:"Gandi domain API base."                                                                                                                              hidden:""`
 
+	Check checkCommand `cmd:"" help:"Load and validate the zones file. No token and no network."`
 	Plan  planCommand  `cmd:"" help:"Show what apply would change. Exit 2 when something would."`
 	Apply applyCommand `cmd:"" help:"Make deSEC and the registrar match the zones file."`
 
 	// Where the plan is written; unexported, so kong leaves it alone.
 	out io.Writer
+}
+
+type checkCommand struct {
+	Zones string `arg:"" help:"The zones file." type:"existingfile"`
 }
 
 type planCommand struct {
@@ -78,6 +84,15 @@ func transportOptions(legacyTLS bool) transporter.Options {
 }
 
 func (root *rootCommand) reconciler() (*reconcile.Reconciler, error) {
+	// Not kong's required: check runs without them.
+	if root.DesecToken == "" {
+		return nil, fmt.Errorf("%w: DESEC_API_TOKEN is not set", fault.ErrMissingRequirements)
+	}
+
+	if root.GandiToken == "" {
+		return nil, fmt.Errorf("%w: GANDI_PERSONAL_ACCESS_TOKEN is not set", fault.ErrMissingRequirements)
+	}
+
 	// deSEC speaks TLS 1.3 and takes the process default: 1.3, hybrid
 	// post-quantum key exchange only.
 	desecClient, err := desec.New(
@@ -122,6 +137,17 @@ func (root *rootCommand) plan(ctx context.Context, path string) (*reconcile.Reco
 	plan.Write(root.out)
 
 	return rec, plan, nil
+}
+
+func (cmd *checkCommand) Run(root *rootCommand) error {
+	cfg, err := zones.Load(cmd.Zones)
+	if err != nil {
+		return fmt.Errorf("zones file: %w", err)
+	}
+
+	fmt.Fprintf(root.out, "%s: valid, zones: %d\n", cmd.Zones, len(cfg.Zones))
+
+	return nil
 }
 
 func (cmd *planCommand) Run(ctx context.Context, root *rootCommand) error {
