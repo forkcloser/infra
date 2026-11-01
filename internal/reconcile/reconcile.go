@@ -149,6 +149,19 @@ func (r *Reconciler) Plan(ctx context.Context, cfg *zones.Config) (*Plan, error)
 // published too: deSEC returns them on creation, so the chain completes in
 // one run.
 func (r *Reconciler) Apply(ctx context.Context, plan *Plan) error {
+	// Refused before any zone is written, not after the record sets and
+	// delegation of other zones have been.
+	if !r.DeSEC.CanCreateDomains() {
+		for i := range plan.Zones {
+			if plan.Zones[i].CreateDomain {
+				return fmt.Errorf(
+					"zone %s: %w: zone does not exist and no deSEC creation token was given",
+					plan.Zones[i].Name, fault.ErrMissingRequirements,
+				)
+			}
+		}
+	}
+
 	for i := range plan.Zones {
 		if err := r.applyZone(ctx, &plan.Zones[i]); err != nil {
 			return fmt.Errorf("zone %s: %w", plan.Zones[i].Name, err)
@@ -165,15 +178,6 @@ func (r *Reconciler) planZone(ctx context.Context, zone *zones.Zone) (*ZonePlan,
 
 	switch {
 	case desec.IsNotFound(err):
-		// Refused at plan time, not after the record sets and delegation
-		// of other zones have already been written.
-		if !r.DeSEC.CanCreateDomains() {
-			return nil, fmt.Errorf(
-				"%w: zone does not exist and no deSEC creation token was given",
-				fault.ErrMissingRequirements,
-			)
-		}
-
 		zonePlan.CreateDomain = true
 		zonePlan.KeysPending = true
 		zonePlan.RRsets = wantedRRsets(zone)

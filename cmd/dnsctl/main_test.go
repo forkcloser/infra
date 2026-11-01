@@ -133,3 +133,65 @@ func TestUsageErrorExitsOne(t *testing.T) {
 		t.Fatalf("stderr %q", stderr.String())
 	}
 }
+
+func TestCheckAcceptsAValidFile(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "zones.yaml")
+	if err := os.WriteFile(path, []byte(zonesFile), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var out, errOut bytes.Buffer
+
+	code := run(t.Context(), []string{"check", path}, &out, &errOut)
+	if code != exitOK {
+		t.Fatalf("exit %d, stderr %q", code, errOut.String())
+	}
+
+	if !strings.Contains(out.String(), "valid, zones: 1") {
+		t.Fatalf("stdout %q", out.String())
+	}
+}
+
+func TestCheckRejectsAnInvalidFile(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "zones.yaml")
+
+	relative := strings.Replace(zonesFile, "site.pages.dev.", "site.pages.dev", 1)
+	if err := os.WriteFile(path, []byte(relative), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var out, errOut bytes.Buffer
+
+	code := run(t.Context(), []string{"check", path}, &out, &errOut)
+	if code != exitError {
+		t.Fatalf("exit %d, stdout %q", code, out.String())
+	}
+
+	if !strings.Contains(errOut.String(), "trailing dot") {
+		t.Fatalf("stderr %q", errOut.String())
+	}
+}
+
+func TestPlanWithoutTokensIsRefused(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "zones.yaml")
+	if err := os.WriteFile(path, []byte(zonesFile), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var out, errOut bytes.Buffer
+
+	code := run(t.Context(), []string{"plan", path}, &out, &errOut)
+	if code != exitError {
+		t.Fatalf("exit %d, stdout %q", code, out.String())
+	}
+
+	if !strings.Contains(errOut.String(), "DESEC_API_TOKEN is not set") {
+		t.Fatalf("stderr %q", errOut.String())
+	}
+}

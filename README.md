@@ -2,9 +2,9 @@
 
 The infrastructure behind forkcloser's websites, as code. One zone per domain the
 organisation owns, one block per site; a pull request adds a site, and the apply on `main`
-creates it. Nothing is configured by hand except the two things no API offers: the
-Cloudflare Pages GitHub App installed on the organisation, once, and the accounts and
-tokens themselves.
+creates it. Nothing is configured by hand except what no API in this repository's reach
+offers: the Cloudflare Pages GitHub App installed on the organisation, once, the two
+environments on this repository, and the accounts and tokens themselves.
 
 Two tools do the work, and both are run by the same recipes. OpenTofu holds what lives at
 Cloudflare: the Pages project pulling a site's repository, and its custom domain. `dnsctl`,
@@ -27,13 +27,13 @@ tag, and the recipes below to limen, leaving this repository its declarations.
 | `backend.hcl` | The backend's bucket, key and R2 flags. The endpoint, which carries the account id, comes from the environment at `just init`. |
 | `sites.tf` | One `static-site` module block per site. |
 | `modules/static-site` | A Cloudflare Pages project pulling a GitHub repository on push, and its custom domain. |
-| `.github/workflows/infra.yaml` | Plan on every pull request; plan and apply on `main`. |
+| `.github/workflows/infra.yaml` | On push to `main`: plan in the `plan` environment, then apply in `production` after the owner's approval. A pull request runs no plan. |
 
 ## Working on it
 
 ```bash
 just lint      # the shared limen baseline and its Go lanes, plus tofu fmt and validate
-just test      # the Go tests, and validate with the provider and without the backend
+just test      # the Go tests, validate with the provider and without the backend, and check zones.yaml
 just plan      # the Cloudflare plan to build/tofu.plan, then the DNS and registrar diff
 just apply     # apply build/tofu.plan, and only that; then DNS and the registrar
 just lock      # refresh provider hashes for every platform in the lock file
@@ -44,12 +44,25 @@ Plan and apply read every credential from the environment and nothing from the t
 | Variable | What |
 |----------|------|
 | `CLOUDFLARE_ACCOUNT_ID`, `TF_VAR_cloudflare_account_id` | The account that owns the Pages projects and the state bucket. |
-| `CLOUDFLARE_API_TOKEN` | Pages read and write on that account, nothing else. |
-| `DESEC_API_TOKEN` | A deSEC token that may write into this organisation's zones and may not create any. |
-| `DESEC_CREATE_TOKEN` | A deSEC token whose only right is to create domains. Read only when a zone in the file does not exist yet; the plan refuses up front if it is needed and absent. |
-| `GANDI_PERSONAL_ACCESS_TOKEN` | A Gandi personal access token with domain management on this organisation's domains, nothing else. |
-| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | An R2 token scoped to the state bucket. |
-| `TF_VAR_state_passphrase` | The passphrase the state encryption key derives from. |
+| `CLOUDFLARE_API_TOKEN` | Pages on that account, nothing else: Cloudflare Pages Read for a plan, Cloudflare Pages Edit for an apply. |
+| `DESEC_API_TOKEN` | A deSEC token on this organisation's zones that may not create any. A plan's has `perm_write` false on its default policy. |
+| `DESEC_CREATE_TOKEN` | A deSEC token whose only right is to create domains. Apply reads it when a zone in the file does not exist yet and refuses up front, before writing anything, when it is needed and absent; plan reports the creation without it. |
+| `GANDI_PERSONAL_ACCESS_TOKEN` | A Gandi personal access token on this organisation's domains, nothing else: one that sees them for a plan, one that manages them for an apply. |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | An R2 token scoped to the state bucket: Object Read only for a plan, which then runs with `-lock=false` since the lock is a write; Object Read & Write for an apply. |
+| `TF_VAR_state_passphrase` | The passphrase the state encryption key derives from. A plan needs it to read the state. |
+
+In the workflow every secret is an environment's, and the repository level holds none. The
+`plan` environment holds the read-only tokens, the account id and the passphrase; it admits
+`main` alone and has no reviewer, so the plan is printed as soon as `main` moves. The
+`production` environment holds the write tokens, the creation token, the account id and the
+passphrase; it admits `main` alone and waits for the owner's approval, given with the plan
+job's output in view. Both jobs name the same secrets; the environment decides which value
+a job gets. A pull request runs no plan: GitHub hands a secret a job names to any run in
+the repository's own context, a pull request with a modified workflow included, so a token
+every pull request reads is one any write account prints, whatever its scope. Pull requests
+verify the tree: `just lint` and `just test`, which validate the OpenTofu configuration
+without the backend and load and validate `zones.yaml`. What a merge changes at the
+providers is shown by the plan on `main`, before the apply waits for approval.
 
 The state is ciphertext in the bucket and the plan file is ciphertext on disk; OpenTofu is
 set to refuse either unencrypted. Locking is the bucket's own conditional write.
@@ -58,7 +71,7 @@ set to refuse either unencrypted. Locking is the bucket's own conditional write.
 tokens keep creation apart from routine writes: the creation token is used for one call,
 creating a zone, and nothing else ever carries that right. `dnsctl plan`
 exits 2 when something would change, 0 when nothing would; the `plan` recipe accepts both,
-since a plan with changes in it is the point of running one on a pull request. Apply runs in the order the
+since a plan with changes in it is the point of running one before an apply. Apply runs in the order the
 DNSSEC chain needs: the zone, its record sets, the delegation, and only then the key at the
 registrar, so a resolver never sees a signed delegation to a zone still served unsigned. A
 zone created in a run has its key published in the same run; deSEC returns the keys on
