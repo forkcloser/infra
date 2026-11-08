@@ -11,7 +11,7 @@ checksum:
 
 registries:
   - type: standard
-    ref: v4.579.0 # renovate: depName=aquaproj/aqua-registry
+    ref: v4.581.1 # renovate: depName=aquaproj/aqua-registry
   - name: local
     type: local
     path: ../.limen/hermetic-registry.yaml
@@ -27,6 +27,6 @@ packages:
   # Every other tool limen requires comes from the import, at the versions
   # this limen pins: a limen bump changes that file, never this list
   # (book/tooling.md).
-  - name: opentofu/opentofu@v1.13.2
+  - name: opentofu/opentofu@v1.13.9
   - name: golang/go@go1.27.3
   - import: ../.limen/hermetic.yaml
