@@ -28,5 +28,5 @@ packages:
   # this limen pins: a limen bump changes that file, never this list
   # (book/tooling.md).
   - name: opentofu/opentofu@v1.13.9
-  - name: golang/go@go1.27.3
+  - name: golang/go@go1.27.4
   - import: ../.limen/hermetic.yaml
