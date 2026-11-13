@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/mycophonic/primordium/fault"
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // RegistrarGandi is the one registrar the tool knows.
