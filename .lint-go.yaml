@@ -14,7 +14,7 @@ golangci:
             allow:
               - github.com/mycophonic/primordium
               - github.com/alecthomas/kong
-              - go.yaml.in/yaml/v3
+              - go.yaml.in/yaml/v4
 
 # dnsctl is built and run by the plan and apply recipes from the tree and
 # never released; the commands rule reads it as shipped otherwise.
